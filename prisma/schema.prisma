@@ -1,0 +1,96 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id          Int      @id @default(autoincrement())
+  name        String
+  email       String   @unique
+  password    String
+  role        String   @default("Customer") // Roles: Admin, StoreOwner, Customer
+  orders      Order[]
+  createdAt   DateTime @default(now())
+}
+
+model Customer {
+  id          Int       @id @default(autoincrement())
+  name        String
+  email       String    @unique
+  phone       String?
+  address     String?
+  orders      Order[]   // Relation to Orders
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+model Order {
+  id            Int          @id @default(autoincrement())
+  storeId       Int
+  store         Store        @relation(fields: [storeId], references: [id])
+  userId        Int
+  user          User         @relation(fields: [userId], references: [id])
+  customerId  Int?         // Add a relation to Customer
+  customer    Customer?    @relation(fields: [customerId], references: [id])
+  orderItems    OrderItem[]
+  totalPrice    Float
+  orderStatus   String       @default("Pending") // Add this field
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model OrderItem {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  order       Order    @relation(fields: [orderId], references: [id])
+  productId   Int
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  price       Float
+}
+
+model Store {
+  id          Int          @id @default(autoincrement())
+  name        String
+  domain      String       @unique
+  currency    String       @default("USD")
+  description String?
+  products    Product[]    
+  orders      Order[]      
+  categories  Category[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  storeId     Int
+  store       Store     @relation(fields: [storeId], references: [id])
+  products    Product[] // Relation to Product model
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  stock       Int         @default(0)
+  storeId     Int
+  store       Store       @relation(fields: [storeId], references: [id])
+  categoryId  Int?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[] // Relation to OrderItem
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
