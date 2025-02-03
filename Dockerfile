@@ -1,5 +1,5 @@
-# Use the official Node.js runtime as a base image
-FROM node:18
+# Stage 1: Build Stage
+FROM node:22-alpine as build
 
 # Set the working directory
 WORKDIR /usr/src/app
@@ -14,8 +14,18 @@ COPY . .
 # Build the TypeScript files
 RUN npm run build
 
-# Set the environment to production
-ENV NODE_ENV=production
+# Stage 2: Production Stage
+FROM node:22-alpine
+
+# Set the working directory
+WORKDIR /usr/src/app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm install --only=production
+
+# Copy the built files from the build stage
+COPY --from=build /usr/src/app/dist ./dist
 
 # Expose the port the app runs on
 EXPOSE 5000

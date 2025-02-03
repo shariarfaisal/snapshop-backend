@@ -14,7 +14,6 @@ export const protectRoute = (
   next: NextFunction
 ): void => {
   const token = req.header("Authorization")?.replace("Bearer ", "");
-
   if (!token) {
     res.status(401).json({ message: "Unauthorized, no token provided" });
     return;

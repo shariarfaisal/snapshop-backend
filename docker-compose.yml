@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  # Express app service
+  app:
+    build: .
+    container_name: express-app
+    ports:
+      - "5000:5000" # Expose Express app on port 5000
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/mydatabase
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  # PostgreSQL database service
+  db:
+    image: postgres:13
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mydatabase
+    ports:
+      - "5432:5432" # Expose PostgreSQL on port 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+# Create a named volume for PostgreSQL data persistence
+volumes:
+  pgdata:
+
+# Define the custom network for communication between app and db
+networks:
+  app-network:
+    driver: bridge

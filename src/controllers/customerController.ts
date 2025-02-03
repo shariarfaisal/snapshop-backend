@@ -4,10 +4,34 @@ import prisma from "../config/db";
 // GET: Retrieve all customers
 export const getCustomers = async (req: Request, res: Response) => {
   try {
+    const { limit = 10, page = 1, search = "", storeId } = req.query;
+
+    const query: any = {};
+
+    if (search) {
+      query.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phone: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    if (storeId) {
+      query.storeId = Number(storeId);
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
     const customers = await prisma.customer.findMany({
-      include: { orders: true },
+      where: query,
+      include: { store: true },
+      take: Number(limit),
+      skip,
     });
-    res.json(customers);
+
+    const total = await prisma.customer.count({ where: query });
+
+    res.json({ total, page: Number(page), limit: Number(limit), customers });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch customers" });
   }
@@ -29,22 +53,6 @@ export const getCustomerById = async (req: Request, res: Response) => {
     res.json(customer);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch customer" });
-  }
-};
-
-// POST: Create a new customer
-export const createCustomer = async (req: Request, res: Response) => {
-  const { name, email, phone, address } = req.body;
-
-  try {
-    const newCustomer = await prisma.customer.create({
-      data: { name, email, phone, address },
-    });
-    res.status(201).json(newCustomer);
-  } catch (err: any) {
-    res
-      .status(400)
-      .json({ message: "Failed to create customer", error: err.message });
   }
 };
 
