@@ -96,3 +96,81 @@ export const loginCustomer = async (req: ClientAuthRequest, res: Response) => {
     return;
   }
 };
+
+export const getCustomerProfile = async (req: ClientAuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const storeId = req.user?.storeId;
+
+    if (!userId || !storeId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const customer = await prisma.customer.findFirst({
+      where: { id: userId, storeId },
+    });
+
+    if (!customer) {
+      res.status(404).json({ message: "Customer not found" });
+      return;
+    }
+
+    res.status(200).json(customer);
+  } catch (err: any) {
+    res.status(500).json({ 
+      message: "Failed to get customer profile", 
+      error: err.message 
+    });
+  }
+};
+
+export const updateCustomerProfile = async (req: ClientAuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const storeId = req.user?.storeId;
+
+    if (!userId || !storeId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const { name, email, phone } = req.body;
+
+    // Check if email is already taken by another customer in the same store
+    if (email) {
+      const existingCustomer = await prisma.customer.findFirst({
+        where: {
+          email,
+          storeId,
+          id: {
+            not: userId
+          }
+        }
+      });
+
+      if (existingCustomer) {
+        res.status(400).json({ message: "Email is already taken" });
+        return;
+      }
+    }
+
+    const updatedCustomer = await prisma.customer.update({
+      where: { 
+        id: userId,
+      },
+      data: {
+        ...(name && { name }),
+        ...(email && { email }),
+        ...(phone && { phone })
+      },
+    });
+
+    res.status(200).json(updatedCustomer);
+  } catch (err: any) {
+    res.status(500).json({ 
+      message: "Failed to update customer profile", 
+      error: err.message 
+    });
+  }
+};

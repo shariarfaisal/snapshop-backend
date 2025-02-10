@@ -1,4 +1,4 @@
-import express, { Application, NextFunction, Request, Response } from "express";
+import express, { Application, NextFunction, Request, Response, Router } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import storeRoutes from "./routes/storeRoutes";
@@ -17,7 +17,6 @@ import clientRoutes from "./routes/clientRoutes";
 import * as bodyParser from "body-parser";
 import { extractSubdomain } from "./middleware/clientMiddleware";
 import { getAnalytics } from "./controllers/analytics";
-import { getProfile } from "./controllers";
 
 const limiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -52,18 +51,15 @@ app.use(morgan("combined"));
 app.use("/uploads", express.static("src/uploads"));
 
 // Routes
-app.use("/api/me", protectRoute, getProfile);
 app.use("/api/auth", authRoutes);
 app.use("/api/analytics", protectRoute, getAnalytics);
 app.use("/api/stores", protectRoute, storeRoutes);
 app.use("/api/products", protectRoute, productRoutes);
 app.use("/api/orders", protectRoute, orderRoutes);
+app.use("/api/categories", protectRoute, categoryRoutes);
+app.use("/api/customers", protectRoute, customerRoutes);
 app.use("/api/media", protectRoute, mediaRoutes);
 app.use("/api/client", extractSubdomain, clientRoutes);
-
-app.use("/api/customers", protectRoute, customerRoutes);
-
-app.use("/api/categories", protectRoute, categoryRoutes);
 
 app.use(compression());
 

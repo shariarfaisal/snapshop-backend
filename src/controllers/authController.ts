@@ -97,3 +97,46 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
       .json({ message: "Failed to get user profile", error: err.message });
   }
 };
+
+export const updateProfile = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const { name, email } = req.body;
+
+    // Check if email is already taken by another user
+    if (email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email,
+          id: {
+            not: userId
+          }
+        }
+      });
+
+      if (existingUser) {
+        res.status(400).json({ message: "Email is already taken" });
+        return;
+      }
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(name && { name }),
+        ...(email && { email })
+      },
+    });
+
+    res.status(200).json(updatedUser);
+  } catch (err: any) {
+    res
+      .status(500)
+      .json({ message: "Failed to update profile", error: err.message });
+  }
+};
