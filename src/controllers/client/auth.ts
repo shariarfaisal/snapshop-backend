@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import prisma from "../../config/db";
 import { ClientAuthRequest } from "../../middleware/clientMiddleware";
 
-const JWT_SECRET = process.env.JWT_SECRET || "secret";
+const JWT_SECRET: Secret = process.env.JWT_SECRET || "secret";
 
 // POST: User Registration
 export const registerCustomer = async (
@@ -35,12 +35,11 @@ export const registerCustomer = async (
       data: { name, email, password: hashedPassword, phone, storeId: store.id },
     });
 
+    const signOptions: SignOptions = { expiresIn: 86400 }; // 24 hours in seconds
     const token = jwt.sign(
       { userId: newUser.id, role: "Customer", storeId: store.id },
       JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      }
+      signOptions
     );
 
     res.status(201).json({
@@ -83,12 +82,11 @@ export const loginCustomer = async (req: ClientAuthRequest, res: Response) => {
       return;
     }
 
+    const signOptions: SignOptions = { expiresIn: 86400 }; // 24 hours in seconds
     const token = jwt.sign(
       { userId: user.id, role: "Customer", storeId: store.id },
       JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRES_IN,
-      }
+      signOptions
     );
 
     res.json({ message: "Login successful", token, user });

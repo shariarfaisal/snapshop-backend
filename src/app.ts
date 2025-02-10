@@ -14,9 +14,10 @@ import categoryRoutes from "./routes/categoryRoutes";
 import customerRoutes from "./routes/customerRoutes";
 import mediaRoutes from "./routes/mediaRoutes";
 import clientRoutes from "./routes/clientRoutes";
-import bodyParser from "body-parser";
+import * as bodyParser from "body-parser";
 import { extractSubdomain } from "./middleware/clientMiddleware";
 import { getAnalytics } from "./controllers/analytics";
+import { getProfile } from "./controllers";
 
 const limiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -51,6 +52,7 @@ app.use(morgan("combined"));
 app.use("/uploads", express.static("src/uploads"));
 
 // Routes
+app.use("/api/me", protectRoute, getProfile);
 app.use("/api/auth", authRoutes);
 app.use("/api/analytics", protectRoute, getAnalytics);
 app.use("/api/stores", protectRoute, storeRoutes);
