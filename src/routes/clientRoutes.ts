@@ -9,6 +9,7 @@ import {
   getCustomerProfile,
   updateCustomerProfile,
 } from "../controllers/client";
+import { searchProducts, searchSuggestions } from "../controllers/client/search";
 import { createOrder } from "../controllers/client/order";
 import { protectClientRoute } from "../middleware/clientMiddleware";
 import { getOrders, getOrderById } from "../controllers/client/order";
@@ -22,6 +23,10 @@ router.post("/auth/login", loginCustomer as RequestHandler);
 // Profile routes
 router.get("/me", protectClientRoute, getCustomerProfile as RequestHandler);
 router.put("/me", protectClientRoute, updateCustomerProfile as RequestHandler);
+
+// Search routes
+router.get("/search/suggestions", searchSuggestions as RequestHandler);
+router.get("/search", searchProducts as RequestHandler);
 
 // Product routes
 router.get("/products", getProducts as RequestHandler);

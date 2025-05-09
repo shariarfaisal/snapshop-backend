@@ -90,12 +90,54 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
 
 // PUT: Update a product
 export const updateProduct = async (req: AuthRequest, res: Response) => {
-  const { name, description, price, stock } = req.body;
-
   try {
-    res.json({ message: "Product updated successfully" });
+    const userId = req.user?.userId;
+    const productId = parseInt(req.params.id);
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    // Check if product exists and belongs to user's store
+    const existingProduct = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        store: {
+          userId,
+        },
+      },
+    });
+
+    if (!existingProduct) {
+      res.status(404).json({ message: "Product not found" });
+      return;
+    }
+
+    const { name, description, basePrice, stock, categoryId } = req.body;
+
+    // Update the product
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        ...(name && { name }),
+        ...(description && { description }),
+        ...(basePrice && { basePrice: Number(basePrice) }),
+        ...(stock !== undefined && { stock: Number(stock) }),
+        ...(categoryId && { categoryId: Number(categoryId) }),
+      },
+      include: {
+        media: true,
+        variants: true,
+        attributes: true,
+        category: true,
+      },
+    });
+
+    res.json(updatedProduct);
   } catch (err) {
-    res.status(400).json({ error: "Failed to update product" });
+    console.error(err);
+    res.status(400).json({ message: "Failed to update product" });
   }
 };
 

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import prisma from "../config/db";
 import { AuthRequest } from "../middleware/authMiddleware";
 import { sendEmail } from "../utils/sendEmail";
+import { z } from "zod";
 
 // GET: Retrieve all orders for a customer
 // GET: Retrieve all orders for a customer with pagination and filtering
@@ -164,33 +165,51 @@ export const getOrderById = async (req: Request, res: Response) => {
   }
 };
 
-export const updateOrderStatus = async (req: Request, res: Response) => {
-  const { status } = req.body;
+const updateOrderStatusSchema = z.object({
+  status: z.enum(["Pending", "Processing", "Shipped", "Delivered", "Cancelled"]),
+});
 
+export const updateOrderStatus = async (req: AuthRequest, res: Response) => {
   try {
-    const updatedOrder = await prisma.order.update({
-      where: { id: parseInt(req.params.id) },
-      data: { orderStatus: status },
-      include: { customer: true },
-    });
+    const userId = req.user?.userId;
+    const orderId = parseInt(req.params.id);
+    const { status } = updateOrderStatusSchema.parse(req.body);
 
-    // Send email notification to customer
-    if (updatedOrder.customer?.email) {
-      const emailHtml = `
-          <h2>Order Status Update</h2>
-          <p>Your order #${updatedOrder.id} is now <strong>${status}</strong>.</p>
-          <p>Thank you for shopping with us!</p>
-        `;
-
-      await sendEmail(
-        updatedOrder.customer.email,
-        "Order Status Update",
-        emailHtml
-      );
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
     }
 
-    res.json({ message: "Order status updated successfully" });
-  } catch (err) {
-    res.status(400).json({ message: "Failed to update order status" });
+    // Check if order exists and belongs to user's store
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        store: {
+          userId,
+        },
+      },
+      include: {
+        customer: true,
+      },
+    });
+
+    if (!order) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    // Update order status
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { orderStatus: status },
+    });
+
+    res.json(updatedOrder);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ message: "Invalid status value" });
+      return;
+    }
+    res.status(500).json({ message: "Failed to update order status" });
   }
 };

@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import storeRoutes from "./routes/storeRoutes";
 import authRoutes from "./routes/authRoutes";
+import profileRoutes from "./routes/profileRoutes";
 import { protectRoute } from "./middleware/authMiddleware";
 import productRoutes from "./routes/productRoutes";
 import orderRoutes from "./routes/orderRoutes";
@@ -14,9 +15,9 @@ import categoryRoutes from "./routes/categoryRoutes";
 import customerRoutes from "./routes/customerRoutes";
 import mediaRoutes from "./routes/mediaRoutes";
 import clientRoutes from "./routes/clientRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
 import * as bodyParser from "body-parser";
 import { extractSubdomain } from "./middleware/clientMiddleware";
-import { getAnalytics } from "./controllers/analytics";
 
 const limiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
@@ -51,15 +52,16 @@ app.use(morgan("combined"));
 app.use("/uploads", express.static("src/uploads"));
 
 // Routes
+app.use("/api/client", extractSubdomain, clientRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/analytics", protectRoute, getAnalytics);
+app.use("/api/profile", protectRoute, profileRoutes);
+app.use("/api/analytics", protectRoute, analyticsRoutes);
 app.use("/api/stores", protectRoute, storeRoutes);
 app.use("/api/products", protectRoute, productRoutes);
 app.use("/api/orders", protectRoute, orderRoutes);
 app.use("/api/categories", protectRoute, categoryRoutes);
 app.use("/api/customers", protectRoute, customerRoutes);
 app.use("/api/media", protectRoute, mediaRoutes);
-app.use("/api/client", extractSubdomain, clientRoutes);
 
 app.use(compression());
 

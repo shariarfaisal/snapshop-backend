@@ -15,22 +15,46 @@ export const extractSubdomain = (
   next: NextFunction
 ) => {
   const origin = req.headers.origin;
-  console.log(origin, req.get("origin"));
+  const xSubdomain = req.headers["x-subdomain"];
+  
+  // If we have a subdomain in the header, use it (useful for development)
+  if (xSubdomain && typeof xSubdomain === "string") {
+    req.subdomain = xSubdomain;
+    next();
+    return;
+  }
+
+  // If no origin, check query params (useful for development)
+  if (!origin && req.query.subdomain && typeof req.query.subdomain === "string") {
+    req.subdomain = req.query.subdomain;
+    next();
+    return;
+  }
+
+  // If we have an origin, try to extract subdomain
   if (origin) {
     const url = new URL(origin);
     const host = url.hostname;
-    const subdomainParts = host.split(".");
+    
+    // Handle localhost development environment
+    if (host === "localhost") {
+      req.subdomain = "test-store"; // Default development subdomain
+      next();
+      return;
+    }
 
+    // Production subdomain handling
+    const subdomainParts = host.split(".");
     const subdomain = subdomainParts.length > 1 ? subdomainParts[0] : null;
 
     if (subdomain) {
-      req.subdomain = subdomain; // Set the subdomain in the request object
-      next(); // Continue to the next middleware
+      req.subdomain = subdomain;
+      next();
       return;
     }
   }
 
-  res.status(400).json({ error: "Invalid request" }); // If no origin, return error
+  res.status(400).json({ error: "Invalid request - Missing subdomain" });
 };
 
 export const protectClientRoute = (

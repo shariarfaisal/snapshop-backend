@@ -70,3 +70,72 @@ export const domainExists = async (req: Request, res: Response) => {
     return;
   }
 };
+
+export const deleteStore = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user?.userId;
+    const storeId = parseInt(req.params.id);
+
+    if (!userId) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    // Check if store exists and belongs to user
+    const store = await prisma.store.findFirst({
+      where: { 
+        id: storeId,
+        userId 
+      },
+    });
+
+    if (!store) {
+      res.status(404).json({ error: "Store not found" });
+      return;
+    }
+
+    // Delete all associated data in a transaction
+    await prisma.$transaction(async (prisma) => {
+      // Delete all products and their variants
+      await prisma.variant.deleteMany({
+        where: { product: { storeId } },
+      });
+      
+      await prisma.media.deleteMany({
+        where: { product: { storeId } },
+      });
+
+      await prisma.attribute.deleteMany({
+        where: { product: { storeId } },
+      });
+
+      await prisma.product.deleteMany({
+        where: { storeId },
+      });
+
+      // Delete all orders and order items
+      await prisma.orderItem.deleteMany({
+        where: { order: { storeId } },
+      });
+
+      await prisma.order.deleteMany({
+        where: { storeId },
+      });
+
+      // Delete all customers
+      await prisma.customer.deleteMany({
+        where: { storeId },
+      });
+
+      // Finally delete the store
+      await prisma.store.delete({
+        where: { id: storeId },
+      });
+    });
+
+    res.json({ message: "Store and all associated data deleted successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to delete store" });
+  }
+};
